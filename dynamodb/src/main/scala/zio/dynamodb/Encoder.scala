@@ -223,7 +223,7 @@ private[dynamodb] object Encoder {
         val av    = enc(a)
         av match {
           case AttributeValue.Map(map) => AttributeValue.Map(map + (AttributeValue.String("discriminator") -> AttributeValue.String(case_.id)))
-          case _                       => AttributeValue.Map(Map.empty + (AttributeValue.String(case_.id) -> av))
+          case _                       => AttributeValue.Map(Map.empty + (AttributeValue.String(case_.id) -> av)) // TODO: return AttributeValue.Null
         }
       } else
         AttributeValue.Null

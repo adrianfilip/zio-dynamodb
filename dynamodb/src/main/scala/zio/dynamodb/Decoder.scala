@@ -257,7 +257,7 @@ private[dynamodb] object Decoder extends GeneratedCaseClassDecoders {
   private def enumDecoder[A](cases: Schema.Case[_, A]*): Decoder[A] =
     (av: AttributeValue) =>
       av match {
-        case AttributeValue.Map(map) => // TODO: assume Map is ListMap for now
+        case AttributeValue.Map(map) =>
           map.get(AttributeValue.String("discriminator")).fold[Either[String, A]](Left(s"map $av does not contain discriminator field 'discriminator'")) {
             case AttributeValue.String(typeName) =>
               val fieldIndex = cases.indexWhere(c => c.id == typeName)
@@ -269,6 +269,6 @@ private[dynamodb] object Decoder extends GeneratedCaseClassDecoders {
                 Left(s"type name '$typeName' not found in schema cases")
             case av                              => Left(s"expected string type but found $av")
           }
-        case _                       => Left(s"invalid AttributeValue $av")
+        case _                       => Left(s"expected AttributeValue.Map but found $av")
       }
 }
