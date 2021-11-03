@@ -237,21 +237,38 @@ private[dynamodb] object Decoder extends GeneratedCaseClassDecoders {
     case av                        => Left(s"unable to decode $av as a list")
   }
 
+//  private def enumDecoder[A](cases: Schema.Case[_, A]*): Decoder[A] =
+//    (av: AttributeValue) =>
+//      av match {
+//        case AttributeValue.Map(map) => // TODO: assume Map is ListMap for now
+//          map.toList.headOption.fold[Either[String, A]](Left(s"map $av is empty")) {
+//            case (AttributeValue.String(subtype), av) =>
+//              cases.find(_.id == subtype) match {
+//                case Some(c) =>
+//                  decoder(c.codec)(av).map(_.asInstanceOf[A])
+//                case None    =>
+//                  Left(s"subtype $subtype not found")
+//              }
+//          }
+//        case _                       =>
+//          Left(s"invalid AttributeValue $av")
+//      }
+
   private def enumDecoder[A](cases: Schema.Case[_, A]*): Decoder[A] =
     (av: AttributeValue) =>
       av match {
         case AttributeValue.Map(map) => // TODO: assume Map is ListMap for now
-          map.toList.headOption.fold[Either[String, A]](Left(s"map $av is empty")) {
-            case (AttributeValue.String(subtype), av) =>
-              cases.find(_.id == subtype) match {
-                case Some(c) =>
-                  decoder(c.codec)(av).map(_.asInstanceOf[A])
-                case None    =>
-                  Left(s"subtype $subtype not found")
-              }
+          map.get(AttributeValue.String("discriminator")).fold[Either[String, A]](Left(s"map $av does not contain discriminator field 'discriminator'")) {
+            case AttributeValue.String(typeName) =>
+              val fieldIndex = cases.indexWhere(c => c.id == typeName)
+              if (fieldIndex > -1) {
+                val case_ = cases(fieldIndex)
+                val dec   = decoder(case_.codec.asInstanceOf[Schema[Any]])
+                dec(av).map(_.asInstanceOf[A])
+              } else
+                Left(s"type name '$typeName' not found in schema cases")
+            case av                              => Left(s"expected string type but found $av")
           }
-        case _                       =>
-          Left(s"invalid AttributeValue $av")
+        case _                       => Left(s"invalid AttributeValue $av")
       }
-
 }

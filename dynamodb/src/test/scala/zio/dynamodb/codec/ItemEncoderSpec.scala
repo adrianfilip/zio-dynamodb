@@ -9,7 +9,15 @@ import scala.collection.immutable.ListMap
 
 object ItemEncoderSpec extends DefaultRunnableSpec with CodecTestFixtures {
   override def spec: ZSpec[Environment, Failure] =
-    suite("ItemEncoder Suite")(mainSuite)
+    suite("ItemEncoder Suite")(mainSuite /* @@ TestAspect.ignore */, isolationSuite)
+
+  val isolationSuite = suite("isolation suite")(test("encodes Pending case object ADT") {
+    val expectedItem: Item = Item("status" -> Item("Pending" -> null))
+
+    val item = DynamoDBQuery.toItem(CaseClassOfStatus(Pending))
+
+    assert(item)(equalTo(expectedItem))
+  })
 
   val mainSuite: ZSpec[Environment, Failure] = suite("Main Suite")(
     test("encodes generic record") {
@@ -72,7 +80,8 @@ object ItemEncoderSpec extends DefaultRunnableSpec with CodecTestFixtures {
       assert(item)(equalTo(expectedItem))
     },
     test("encodes Ok ADT") {
-      val expectedItem: Item = Item("status" -> Item("Ok" -> Item("response" -> List("1", "2"))))
+//      val expectedItem: Item = Item("status" -> Item("Ok" -> Item("response" -> List("1", "2"))))
+      val expectedItem: Item = Item("status" -> Item("response" -> List("1", "2"), "discriminator" -> "Ok"))
 
       val item = DynamoDBQuery.toItem(CaseClassOfStatus(Ok(List("1", "2"))))
 

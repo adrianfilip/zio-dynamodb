@@ -19,7 +19,8 @@ private[dynamodb] object Encoder {
 
   private def encoder[A](schema: Schema[A]): Encoder[A] =
     schema match {
-      case ProductEncoder(encoder)         => encoder // TODO: inline for exhaustive matching
+      case ProductEncoder(encoder)         =>
+        encoder // TODO: inline for exhaustive matching
       case s: Schema.Optional[a]           => optionalEncoder[a](encoder(s.codec))
       case Schema.Fail(_)                  => _ => AttributeValue.Null
       case Schema.Tuple(l, r)              => tupleEncoder(encoder(l), encoder(r))
@@ -27,13 +28,15 @@ private[dynamodb] object Encoder {
       case Schema.Transform(c, _, g)       => transformEncoder(c, g)
       case Schema.Primitive(standardType)  => primitiveEncoder(standardType)
       case Schema.GenericRecord(structure) => genericRecordEncoder(structure)
-      case Schema.Enumeration(structure)   => enumerationEncoder(structure)
+      case Schema.Enumeration(structure)   =>
+        enumerationEncoder(structure)
       case Schema.EitherSchema(l, r)       => eitherEncoder(encoder(l), encoder(r))
       case l @ Schema.Lazy(_)              =>
         lazy val enc = encoder(l.schema)
         (a: A) => enc(a)
       case Schema.Meta(_)                  => astEncoder
-      case Schema.Enum1(c)                 => enumEncoder(c)
+      case Schema.Enum1(c)                 =>
+        enumEncoder(c)
       case Schema.Enum2(c1, c2)            => enumEncoder(c1, c2)
       case Schema.Enum3(c1, c2, c3)        => enumEncoder(c1, c2, c3)
       case Schema.EnumN(cs)                => enumEncoder(cs: _*)
@@ -66,7 +69,8 @@ private[dynamodb] object Encoder {
   private object ProductEncoder {
     def unapply[A](schema: Schema[A]): Option[Encoder[A]] =
       schema match {
-        case Schema.CaseClass1(_, f, _, ext)                                                                                                                                                                                                                                                => caseClassEncoder(f -> ext)
+        case Schema.CaseClass1(_, f, _, ext)                                                                                                                                                                                                                                                =>
+          caseClassEncoder(f -> ext)
         case Schema.CaseClass2(_, f1, f2, _, ext1, ext2)                                                                                                                                                                                                                                    => caseClassEncoder(f1 -> ext1, f2 -> ext2)
         case Schema.CaseClass3(_, f1, f2, f3, _, ext1, ext2, ext3)                                                                                                                                                                                                                          => caseClassEncoder(f1 -> ext1, f2 -> ext2, f3 -> ext3)
         case Schema.CaseClass4(_, f1, f2, f3, f4, _, ext1, ext2, ext3, ext4)                                                                                                                                                                                                                =>
@@ -198,6 +202,18 @@ private[dynamodb] object Encoder {
   private def sequenceEncoder[Col[_], A](encoder: Encoder[A], from: Col[A] => Chunk[A]): Encoder[Col[A]] =
     (col: Col[A]) => AttributeValue.List(from(col).map(encoder))
 
+//  private def enumEncoder[A](cases: Schema.Case[_, A]*): Encoder[A] =
+//    (a: A) => {
+//      val fieldIndex = cases.indexWhere(c => c.deconstruct(a).isDefined)
+//      if (fieldIndex > -1) {
+//        val case_ = cases(fieldIndex)
+//        val enc   = encoder(case_.codec.asInstanceOf[Schema[Any]])
+//        val av    = enc(a)
+//        AttributeValue.Map(Map.empty + (AttributeValue.String(case_.id) -> av))
+//      } else
+//        AttributeValue.Null
+//    }
+
   private def enumEncoder[A](cases: Schema.Case[_, A]*): Encoder[A] =
     (a: A) => {
       val fieldIndex = cases.indexWhere(c => c.deconstruct(a).isDefined)
@@ -205,8 +221,12 @@ private[dynamodb] object Encoder {
         val case_ = cases(fieldIndex)
         val enc   = encoder(case_.codec.asInstanceOf[Schema[Any]])
         val av    = enc(a)
-        AttributeValue.Map(Map.empty + (AttributeValue.String(case_.id) -> av))
+        av match {
+          case AttributeValue.Map(map) => AttributeValue.Map(map + (AttributeValue.String("discriminator") -> AttributeValue.String(case_.id)))
+          case _                       => AttributeValue.Map(Map.empty + (AttributeValue.String(case_.id) -> av))
+        }
       } else
         AttributeValue.Null
     }
+
 }

@@ -90,7 +90,10 @@ object ItemDecoderSpec extends DefaultRunnableSpec with CodecTestFixtures {
       val expected = CaseClassOfStatus(Ok(List("1", "2")))
 
       val actual =
-        DynamoDBQuery.fromItem[CaseClassOfStatus](Item("status" -> Item("Ok" -> Item("response" -> List("1", "2")))))
+//        DynamoDBQuery.fromItem[CaseClassOfStatus](Item("status" -> Item("Ok" -> Item("response" -> List("1", "2")))))
+        DynamoDBQuery.fromItem[CaseClassOfStatus](
+          Item("status" -> Item("response" -> List("1", "2"), "discriminator" -> "Ok"))
+        )
 
       assert(actual)(isRight(equalTo(expected)))
     },
@@ -98,7 +101,8 @@ object ItemDecoderSpec extends DefaultRunnableSpec with CodecTestFixtures {
       val expected = CaseClassOfStatus(Pending)
 
       val actual =
-        DynamoDBQuery.fromItem[CaseClassOfStatus](Item("status" -> Item("Pending" -> null)))
+//        DynamoDBQuery.fromItem[CaseClassOfStatus](Item("status" -> Item("Pending" -> null)))
+        DynamoDBQuery.fromItem[CaseClassOfStatus](Item("status" -> Item("discriminator" -> "Pending")))
 
       assert(actual)(isRight(equalTo(expected)))
     },
