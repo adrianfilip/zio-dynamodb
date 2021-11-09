@@ -237,7 +237,7 @@ private[dynamodb] object Decoder extends GeneratedCaseClassDecoders {
     case av                        => Left(s"unable to decode $av as a list")
   }
 
-//  private def enumDecoder[A](cases: Schema.Case[_, A]*): Decoder[A] =
+//  private def enumDecoderOld[A](cases: Schema.Case[_, A]*): Decoder[A] =
 //    (av: AttributeValue) =>
 //      av match {
 //        case AttributeValue.Map(map) => // TODO: assume Map is ListMap for now

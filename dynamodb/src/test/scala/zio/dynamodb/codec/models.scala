@@ -1,13 +1,15 @@
 package zio.dynamodb.codec
 
 import java.time.Instant
+import scala.annotation.Annotation
 
 // ADT example
+final case class discriminator(name: String) extends Annotation
 sealed trait Status
-final case class Ok(response: List[String]) extends Status
+final case class Ok(response: List[String])  extends Status
 final case class Failed(code: Int, reason: String, additionalExplanation: Option[String], remark: String = "oops")
     extends Status
-case object Pending                         extends Status
+case object Pending                          extends Status
 final case class NestedCaseClass2(id: Int, nested: SimpleCaseClass3)
 
 final case class SimpleCaseClass3(id: Int, name: String, flag: Boolean)
